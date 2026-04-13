@@ -4,89 +4,58 @@ import matplotlib.pyplot as plt
 
 df = pd.read_csv('data/Salary_Data.csv')
 
-# currentM = 8000
-# currentB = 0
-currentM = 13254.938454048064
-currentB = 33496.33331671738
+currentM = 7000
+currentB = 0
 
-mStepMax = 1000
-bStepMax = 10000
+stepMax = 20000
 learning_rate = 0.0001
 
 #linear approximation of data
 def f(m, x, b):
     return m*x + b
 
-#loss will be calculated by sum of squared residuals
-def mLoss(m):
+#loss calculated by sum of squared residuals
+def loss(m, b):
     rowCount = 0
     sumOfSquaredResiduals = 0
     for row in df.itertuples():
         yearsExperience = df.iloc[rowCount, 0]
         salary = df.iloc[rowCount, 1]
-        predicted = f(m, yearsExperience, currentB)
+        predicted = f(m, yearsExperience, b)
         sumOfSquaredResiduals += (salary - predicted)**2
         rowCount += 1
     return sumOfSquaredResiduals
 
-def bLoss(b):
-    rowCount = 0
-    sumOfSquaredResiduals = 0
-    for row in df.itertuples():
-        yearsExperience = df.iloc[rowCount, 0]
-        salary = df.iloc[rowCount, 1]
-        predicted = f(currentM, yearsExperience, b)
-        sumOfSquaredResiduals += (salary - predicted)**2
-        rowCount += 1
-    return sumOfSquaredResiduals
-
-def gradient_descent_m():
-    dldm=0
+def gradient_descent():
+    b = currentB
     m = currentM
-    dldm = finddldm(m)
-    for i in range(0, mStepMax):
-        if(abs(dldm) <= 0.001):
-            print("found correct m")
-            return m
+    dldm = findderivatives(m, b)[0]
+    dldb = findderivatives(m, b)[1]
+    for i in range(0, stepMax):
+        if(abs(dldm) <= 0.001 and abs(dldb) <= 0.001):
+            print("found correct m and b")
+            return m, b
         else:
             m = m - learning_rate * dldm
-            dldm = finddldm(m)
-    print("Could not find a valid m before step max was reached.")
-
-def gradient_descent_b():
-    dldb = 0
-    b = currentB
-    dldb = finddldb(b)
-    for i in range(0, bStepMax):
-        if(abs(dldb) <= 0.001):
-            print("found correct b")
-            return b
-        else:
             b = b - learning_rate * dldb
-            dldb = finddldb(b)
-    print("Could not find a valid b before step max was reached")
+            dldm = findderivatives(m, b)[0]
+            dldb = findderivatives(m,b)[1]
+    print("Step max reached")
 
-def finddldm(m):
+def findderivatives(m, b):
     rowCount = 0
+    dldb = 0
     dldm = 0
     for row in df.itertuples():
         x=df.iloc[rowCount, 0]
         y=df.iloc[rowCount,1]
-        dldm += x*(y-(m*x+currentB))
+        dldm += x*(y-(m*x+b))
+        dldb += y-(m*x+b)
         rowCount += 1
     dldm *= -2
-    return dldm
-
-def finddldb(b):
-    rowCount = 0
-    dldb = 0
-    for row in df.itertuples():
-        x=df.iloc[rowCount, 0]
-        y=df.iloc[rowCount,1]
-        dldb += y-(currentM*x+b)
-        rowCount += 1
     dldb *= -2
-    return dldb
+    return dldm, dldb
+
             
 # plotting salary data vs linear approximation
 df.plot(x='YearsExperience', y='Salary')
@@ -95,41 +64,29 @@ y_vals = f(currentM, x_vals, currentB)
 plt.plot(x_vals, y_vals, label="f(x) = 3x + 0")
 plt.show()
 
-#plot loss function for m
-# min_m = -100000
-# max_m = 100000
-# m_vals = np.linspace(min_m, max_m)
-# m_loss_vals = []
+#gradient descent
+newM, newB = gradient_descent()
 
-#for m in m_vals:
-#    lossValue = mLoss(m)
-#    m_loss_vals.append(lossValue)
+#plot loss
+min_m = -100000
+max_m = 100000
+m_vals = np.linspace(min_m,max_m)
+plt.plot(m_vals, [loss(m, newB) for m in m_vals], label="m loss function")
+plt.title("Loss Function for m")
+plt.show()
 
-#print(loss_vals)
+min_b = -100000
+max_b = 100000
+b_vals= np.linspace(min_b,max_b)
+plt.plot(b_vals, [loss(newM, b) for b in b_vals])
+plt.title("Loss Function for b")
+plt.show()
 
-#plt.plot(m_vals, m_loss_vals, label="m loss function")
-#plt.show()
+print("Optimal M Value: " + str(newM))
+print("Optimal B Value: " + str(newB))
 
-#plot loss function for b
-# min_b = -100000
-# max_b = 100000
-# b_vals = np.linspace(min_b, max_b)
-# b_loss_vals = []
+actualOptimalValues = np.polyfit(df['YearsExperience'], df['Salary'], 1)
+print("Actual Optimal M Value: " + str(actualOptimalValues[0]))
+print("Actual Optimal B Value: " + str(actualOptimalValues[1]))
 
-# for b in b_vals:
-#     lossValue = bLoss(b)
-#     b_loss_vals.append(lossValue)
-# print(b_vals)
-
-# plt.plot(b_vals, b_loss_vals, label="b loss function")
-# plt.show()
-
-
-
-#gradient descent implementation
-newM = gradient_descent_m()
-newB = gradient_descent_b()
-print(newM)
-print(newB)
-print(mLoss(newM))
-print(bLoss(newB))
+print("Sum of Squared Residual: " + str(loss(newM, newB)))
